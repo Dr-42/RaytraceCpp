@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <math/vec3.hpp>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -14,13 +15,14 @@ public:
     void PixRun(void (*callback)(Pix* pix));
 
     void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
+    void SetPixel(int x, int y, color col, int samples_per_pixel);
     static double GetTime();
 
     int width, height;
+    uint8_t* pixels;
 private:
     GLFWwindow* window;
     GLuint VAO, VBO, EBO, shaderProgram, texture;
-    uint8_t* pixels;
 
     static void _framebuffer_size_callback(GLFWwindow* window, int width, int height);
     void _processInput(GLFWwindow* window);

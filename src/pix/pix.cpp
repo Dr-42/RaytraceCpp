@@ -1,5 +1,7 @@
 #include "pix/pix.hpp"
 
+#include <math/utils.hpp>
+
 static const char *vertexShaderSource = "#version 330 core\n"
                                  "layout (location = 0) in vec3 aPos;\n"
                                  "layout (location = 1) in vec2 aTexCoord;\n"
@@ -68,6 +70,22 @@ void Pix::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b){
     this->pixels[(y * this->width + x) * 3 + 0] = r;
     this->pixels[(y * this->width + x) * 3 + 1] = g;
     this->pixels[(y * this->width + x) * 3 + 2] = b;
+}
+
+void Pix::SetPixel(int x, int y, color col, int samples_per_pixel){
+    auto r = col.x();
+    auto g = col.y();
+    auto b = col.z();
+
+    auto scale = 1.0 / samples_per_pixel;
+    r *= scale;
+    g *= scale;
+    b *= scale;
+
+
+    this->pixels[(y * this->width + x) * 3 + 0] = static_cast<uint8_t>(256 * clamp(r, 0.0, 0.999));
+    this->pixels[(y * this->width + x) * 3 + 1] = static_cast<uint8_t>(256 * clamp(g, 0.0, 0.999));
+    this->pixels[(y * this->width + x) * 3 + 2] = static_cast<uint8_t>(256 * clamp(b, 0.0, 0.999));
 }
 
 double Pix::GetTime(){
