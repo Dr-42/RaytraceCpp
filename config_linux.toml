@@ -1,0 +1,10 @@
+[build]
+compiler = "g++"
+
+[[targets]]
+name = "main"
+src = "./src/"
+include_dir = "./src/include"
+type = "exe"
+cflags = "-g -Wall -Wunused -Wpedantic"
+libs = "-lGL -lGLEW -lglfw -lm"
