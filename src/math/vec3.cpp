@@ -1,4 +1,4 @@
-#include "math_utils/vec3.hpp"
+#include "math/vec3.hpp"
 
 double vec3::x() const { return e[0]; }
 double vec3::y() const { return e[1]; }
