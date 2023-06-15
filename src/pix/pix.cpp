@@ -78,11 +78,9 @@ void Pix::SetPixel(int x, int y, color col, int samples_per_pixel){
     auto b = col.z();
 
     auto scale = 1.0 / samples_per_pixel;
-    r *= scale;
-    g *= scale;
-    b *= scale;
-
-
+    r = sqrt(scale * r);
+    g = sqrt(scale * g);
+    b = sqrt(scale * b);
     this->pixels[(y * this->width + x) * 3 + 0] = static_cast<uint8_t>(256 * clamp(r, 0.0, 0.999));
     this->pixels[(y * this->width + x) * 3 + 1] = static_cast<uint8_t>(256 * clamp(g, 0.0, 0.999));
     this->pixels[(y * this->width + x) * 3 + 2] = static_cast<uint8_t>(256 * clamp(b, 0.0, 0.999));

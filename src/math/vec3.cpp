@@ -1,4 +1,5 @@
 #include "math/vec3.hpp"
+#include "math/utils.hpp"
 
 double vec3::x() const { return e[0]; }
 double vec3::y() const { return e[1]; }
@@ -98,3 +99,33 @@ vec3 unit_vector(vec3 v)
 {
     return v / v.length();
 }
+
+vec3 random_vec3(){
+    return vec3(random_double(), random_double(), random_double());
+}
+
+vec3 random_vec3(double min, double max){
+    return vec3(random_double(min, max), random_double(min, max), random_double(min, max));
+}
+
+vec3 random_in_unit_sphere(){
+    while(true){
+        auto p = random_vec3(-1, 1);
+        if(p.length_squared() >= 1) continue;
+        return p;
+    }
+}
+
+vec3 random_unit_vector(){
+    return unit_vector(random_in_unit_sphere());
+}
+
+vec3 random_in_hemisphere(const vec3& normal){
+    vec3 in_unit_sphere = random_in_unit_sphere();
+    if(dot(in_unit_sphere, normal) > 0.0){
+        return in_unit_sphere;
+    }else{
+        return -in_unit_sphere;
+    }
+}
+

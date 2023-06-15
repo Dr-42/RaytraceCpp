@@ -10,7 +10,9 @@
 const auto aspect_ratio = 16.0 / 9.0;
 const int image_width = 1080;
 const int image_height = static_cast<int>(image_width / aspect_ratio);
-const int samples_per_pixel = 1;
+
+const int samples_per_pixel = 100;
+const int max_depth = 10;
 
 hittable_list world;
 camera cam;
@@ -29,12 +31,19 @@ int frame_count = 1;
 
 bool save_image = false;
 
-color ray_color(const ray &r, const hittable &world)
+color ray_color(const ray &r, const hittable &world, int depth)
 {
     hit_record rec;
-    if (world.hit(r, 0, infinity, rec))
+
+    if (depth <= 0)
     {
-        return 0.5 * (rec.normal + color(1, 1, 1));
+        return color(0, 0, 0);
+    }
+
+    if (world.hit(r, 0.001, infinity, rec))
+    {
+        point3 target = rec.p + rec.normal + random_in_hemisphere(rec.normal);
+        return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth - 1);
     }
     vec3 unit_direction = unit_vector(r.direction());
     auto t = 0.5 * (unit_direction.y() + 1.0);
@@ -43,47 +52,50 @@ color ray_color(const ray &r, const hittable &world)
 
 void renderCallback(Pix *pix)
 {
-    //Print framerate
+    // Print framerate
     double currentTime = Pix::GetTime();
     double delta = currentTime - lastTime;
     lastTime = currentTime;
-    std::cout << "FPS: " << 1.0 / delta << std::endl;
+    std::cout << "Frame : "<< frame_count<< " FPS : " << 1.0 / delta << " Frame time : " << delta << std::endl;
 
     auto sph = dynamic_cast<sphere *>(world.objects[world.objects.size() - 1].get());
     sph->center = point3(
         0,
-        0, //sin(degrees_to_radians(frame_count) * 2) * 0.5,
+        0, // sin(degrees_to_radians(frame_count) * 2) * 0.5,
         -1);
 
     for (int j = pix->height - 1; j >= 0; --j)
     {
+        std::cout << "\rScanlines remaining: " << j << ' ' << std::flush;
         for (int i = 0; i < pix->width; ++i)
         {
             color pixel_color(0, 0, 0);
-            //Anti-aliasing
-            //Replace frame_count with samples_per_pixel for steady image
-            for (int s = 0; s < frame_count; s++){
+            // Anti-aliasing
+            // Replace frame_count with samples_per_pixel for steady image
+            for (int s = 0; s < samples_per_pixel; s++)
+            {
                 auto u = (i + random_double()) / (pix->width - 1);
                 auto v = (j + random_double()) / (pix->height - 1);
                 ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, world);
+                pixel_color += ray_color(r, world, max_depth);
             }
-            pix->SetPixel(i, j, pixel_color, frame_count);
+            pix->SetPixel(i, j, pixel_color, samples_per_pixel);
         }
     }
     frame_count++;
     if (!save_image)
         return;
-    //Check if output folder exists
+    // Check if output folder exists
     std::string file_name = "output/frame_" + std::to_string(frame_count) + ".jpg";
-    //Flip image
+    // Flip image
     stbi_flip_vertically_on_write(true);
     stbi_write_jpg(file_name.c_str(), pix->width, pix->height, 3, pix->pixels, 100);
 }
 
 int main(int argc, char const *argv[])
 {
-    if(argc > 1){
+    if (argc > 1)
+    {
         if (strcmp(argv[1], "--save") == 0)
         {
             save_image = true;
