@@ -16,16 +16,7 @@ const int samples_per_pixel = 100;
 const int max_depth = 50;
 
 hittable_list world;
-camera cam;
-
-auto viewport_height = 2.0;
-auto viewport_width = aspect_ratio * viewport_height;
-auto focal_length = 1.0;
-
-auto origin = point3(0, 0, 0);
-auto horizontal = vec3(viewport_width, 0, 0);
-auto vertical = vec3(0, viewport_height, 0);
-auto lower_left_corner = origin - horizontal / 2 - vertical / 2 - vec3(0, 0, focal_length);
+camera cam(point3(-1,1,0), point3(0,0,-1), vec3(0,1,0), 100, aspect_ratio);
 
 double lastTime = 0.0;
 int frame_count = 1;
@@ -104,10 +95,10 @@ int main(int argc, char const *argv[])
 
     auto pix = Pix(image_width, image_height, "Raytracer");
 
-    auto material_ground = make_shared<lambertian>(color(0.6, 0.0, 0.8));
+    auto material_ground = make_shared<metal>(color(0.6, 0.0, 0.8), 0.2);
     auto material_center = make_shared<lambertian>(color(0.2, 0.8, 0.3));
     //auto material_left   = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
-    auto material_right  = make_shared<metal>(color(0.8, 0.6, 0.2), 1.0);
+    auto material_right  = make_shared<metal>(color(0.8, 0.6, 0.2), 0.3);
     auto material_left   = make_shared<dielectric>(1.5);
 
     world.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
