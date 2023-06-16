@@ -11,12 +11,18 @@
 const auto aspect_ratio = 16.0 / 9.0;
 const int image_width = 1080;
 const int image_height = static_cast<int>(image_width / aspect_ratio);
+point3 lookfrom(3,3,2);
+point3 lookat(0,0,-1);
+vec3 vup(0,1,0);
+auto dist_to_focus = (lookfrom-lookat).length();
+auto aperture = 0.2;
+
+camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
 const int samples_per_pixel = 100;
-const int max_depth = 50;
+const int max_depth = 20;
 
 hittable_list world;
-camera cam(point3(-1,1,0), point3(0,0,-1), vec3(0,1,0), 100, aspect_ratio);
 
 double lastTime = 0.0;
 int frame_count = 1;
