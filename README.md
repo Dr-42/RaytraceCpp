@@ -1,5 +1,7 @@
 # Raytracing In One Weekeend follow along
 
-A simple ray tracer floowing the raytracing in a weekend book
+A simple ray tracer following the raytracing in a weekend book
 
-## PROJECT IS IN BABY FORM. NOTHING WORKS AS OF YET
+Runs multithreaded on cpu side.
+
+![Final Image](output/final%20high.jpg)
