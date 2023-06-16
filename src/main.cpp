@@ -1,3 +1,8 @@
+#include <thread>
+#include <vector>
+#include <atomic>
+#include <iomanip>
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
 
@@ -8,24 +13,28 @@
 #include "utils/camera.hpp"
 #include "utils/material.hpp"
 
-const auto aspect_ratio = 16.0 / 9.0;
-const int image_width = 1080;
+const int num_threads = std::thread::hardware_concurrency();
+std::vector<std::thread> threads(num_threads);
+std::atomic<int> scanlines_processed = 0;
+
+const auto aspect_ratio = 3.0 / 2.0;
+const int image_width = 1200;
 const int image_height = static_cast<int>(image_width / aspect_ratio);
-point3 lookfrom(3,3,2);
-point3 lookat(0,0,-1);
-vec3 vup(0,1,0);
-auto dist_to_focus = (lookfrom-lookat).length();
-auto aperture = 0.2;
+point3 lookfrom(13, 2, 3);
+point3 lookat(0, 0, 0);
+vec3 vup(0, 1, 0);
+auto dist_to_focus = 10.0;
+auto aperture = 0.1;
 
 camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
-const int samples_per_pixel = 100;
-const int max_depth = 20;
+const int samples_per_pixel = 200;
+const int max_depth = 50;
 
 hittable_list world;
 
 double lastTime = 0.0;
-int frame_count = 1;
+int frame_count = 0;
 
 bool save_image = false;
 
@@ -42,7 +51,7 @@ color ray_color(const ray &r, const hittable &world, int depth)
     {
         ray scattered;
         color attenuation;
-        if(rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+        if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))
             return attenuation * ray_color(scattered, world, depth - 1);
         return color(0, 0, 0);
     }
@@ -58,27 +67,49 @@ void renderCallback(Pix *pix)
     double currentTime = Pix::GetTime();
     double delta = currentTime - lastTime;
     lastTime = currentTime;
-    std::cout << "Frame : "<< frame_count<< " FPS : " << 1.0 / delta << " Frame time : " << delta << std::endl;
 
-    for (int j = pix->height - 1; j >= 0; --j)
+    for (int t = 0; t < num_threads; t++)
     {
-        std::cout << "\rScanlines remaining: " << j << ' ' << std::flush;
-        for (int i = 0; i < pix->width; ++i)
-        {
-            color pixel_color(0, 0, 0);
-            // Anti-aliasing
-            // Replace frame_count with samples_per_pixel for steady image
-            for (int s = 0; s < samples_per_pixel; s++)
+        threads[t] = std::thread([&](int thread_id)
+                                 {
+            for (int j = pix->height - 1 - thread_id; j >= 0; j -= num_threads)
             {
-                auto u = (i + random_double()) / (pix->width - 1);
-                auto v = (j + random_double()) / (pix->height - 1);
-                ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, world, max_depth);
-            }
-            pix->SetPixel(i, j, pixel_color, samples_per_pixel);
-        }
+                for (int i = 0; i < pix->width; ++i)
+                {
+                    color pixel_color(0, 0, 0);
+                    // Anti-aliasing
+                    // Replace frame_count with samples_per_pixel for steady image
+                    for (int s = 0; s < samples_per_pixel; s++)
+                    {
+                        auto u = (i + random_double()) / (pix->width - 1);
+                        auto v = (j + random_double()) / (pix->height - 1);
+                        ray r = cam.get_ray(u, v);
+                        pixel_color += ray_color(r, world, max_depth);
+                    }
+                    pix->SetPixel(i, j, pixel_color, samples_per_pixel);
+                }
+                scanlines_processed++;
+            } },
+                                 t);
     }
+
+    while (scanlines_processed < pix->height)
+    {
+        int remaining = pix->height - scanlines_processed;
+        // Percentage of scanlines processed upto 2 decimal places
+        std::cout << "Scanlines remaining: " << remaining << " : Remaining " << std::fixed << std::setprecision(2) << (remaining * 100.0) / pix->height << "%"
+                  << "\r";
+    }
+
+    for (int t = 0; t < num_threads; t++)
+    {
+        threads[t].join();
+    }
+
+    std::cout << "Frame : " << frame_count << " FPS : " << 1.0 / delta << " Frame time : " << delta << std::endl;
+
     frame_count++;
+    scanlines_processed = 0;
     if (!save_image)
         return;
     // Check if output folder exists
@@ -86,6 +117,61 @@ void renderCallback(Pix *pix)
     // Flip image
     stbi_flip_vertically_on_write(true);
     stbi_write_jpg(file_name.c_str(), pix->width, pix->height, 3, pix->pixels, 100);
+}
+
+hittable_list random_scene()
+{
+    hittable_list world;
+
+    auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
+    world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, ground_material));
+
+    for (int a = -11; a < 11; a++)
+    {
+        for (int b = -11; b < 11; b++)
+        {
+            auto choose_mat = random_double();
+            point3 center(a + 0.9 * random_double(), 0.2, b + 0.9 * random_double());
+
+            if ((center - point3(4, 0.2, 0)).length() > 0.9)
+            {
+                shared_ptr<material> sphere_material;
+
+                if (choose_mat < 0.8)
+                {
+                    // diffuse
+                    auto albedo = random_vec3() * random_vec3();
+                    sphere_material = make_shared<lambertian>(albedo);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                }
+                else if (choose_mat < 0.95)
+                {
+                    // metal
+                    auto albedo = random_vec3(0.5, 1);
+                    auto fuzz = random_double(0, 0.5);
+                    sphere_material = make_shared<metal>(albedo, fuzz);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                }
+                else
+                {
+                    // glass
+                    sphere_material = make_shared<dielectric>(1.5);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                }
+            }
+        }
+    }
+
+    auto material1 = make_shared<dielectric>(1.5);
+    world.add(make_shared<sphere>(point3(0, 1, 0), 1.0, material1));
+
+    auto material2 = make_shared<lambertian>(color(0.4, 0.2, 0.1));
+    world.add(make_shared<sphere>(point3(-4, 1, 0), 1.0, material2));
+
+    auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
+    world.add(make_shared<sphere>(point3(4, 1, 0), 1.0, material3));
+
+    return world;
 }
 
 int main(int argc, char const *argv[])
@@ -101,16 +187,12 @@ int main(int argc, char const *argv[])
 
     auto pix = Pix(image_width, image_height, "Raytracer");
 
-    auto material_ground = make_shared<metal>(color(0.6, 0.0, 0.8), 0.2);
-    auto material_center = make_shared<lambertian>(color(0.2, 0.8, 0.3));
-    //auto material_left   = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
-    auto material_right  = make_shared<metal>(color(0.8, 0.6, 0.2), 0.3);
-    auto material_left   = make_shared<dielectric>(1.5);
+    world = random_scene();
 
-    world.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
-    world.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
-    world.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
-    world.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
+    //Unicode yellow escape sequence
+    auto yellow = "\u001b[33m";
+    auto reset = "\u001b[0m";
+    std::cout << yellow << "Using " << num_threads << " threads" << reset << std::endl;
 
     pix.PixRun(renderCallback);
     return 0;
