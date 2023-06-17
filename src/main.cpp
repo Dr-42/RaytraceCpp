@@ -9,6 +9,7 @@
 #include "pix/pix.hpp"
 #include "math/utils.hpp"
 #include "utils/sphere.hpp"
+#include "utils/cube.hpp"
 #include "utils/hittable_list.hpp"
 #include "utils/camera.hpp"
 #include "utils/material.hpp"
@@ -17,8 +18,8 @@ const int num_threads = std::thread::hardware_concurrency();
 std::vector<std::thread> threads(num_threads);
 std::atomic<int> scanlines_processed = 0;
 
-const auto aspect_ratio = 3.0 / 2.0;
-const int image_width = 1200;
+const auto aspect_ratio = 16.0 / 9.0;
+const int image_width = 800;
 const int image_height = static_cast<int>(image_width / aspect_ratio);
 point3 lookfrom(13, 2, 3);
 point3 lookat(0, 0, 0);
@@ -163,13 +164,13 @@ hittable_list random_scene()
     }
 
     auto material1 = make_shared<dielectric>(1.5);
-    world.add(make_shared<sphere>(point3(0, 1, 0), 1.0, material1));
+    world.add(make_shared<cube>(point3(0, 1, 0), 2, vec3(0, 1, 0), vec3(1, 0, 0), vec3(0, 0, 1), material1));
 
     auto material2 = make_shared<lambertian>(color(0.4, 0.2, 0.1));
-    world.add(make_shared<sphere>(point3(-4, 1, 0), 1.0, material2));
+    world.add(make_shared<cube>(point3(-4, 1, 0), 3, vec3(0, 1, 0), vec3(1, 0, 0), vec3(0, 0, 1), material2));
 
-    auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
-    world.add(make_shared<sphere>(point3(4, 1, 0), 1.0, material3));
+    auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.1);
+    world.add(make_shared<cube>(point3(4, 1, 0), 1, vec3(0, 1, 0), vec3(1, 0, 0), vec3(0, 0, 1), material3));
 
     return world;
 }
