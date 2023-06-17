@@ -21,15 +21,15 @@ std::atomic<int> scanlines_processed = 0;
 const auto aspect_ratio = 16.0 / 9.0;
 const int image_width = 800;
 const int image_height = static_cast<int>(image_width / aspect_ratio);
-point3 lookfrom(13, 2, 3);
-point3 lookat(0, 0, 0);
+point3 lookfrom(3, 2, 10);
+point3 lookat(0, 0, -1);
 vec3 vup(0, 1, 0);
-auto dist_to_focus = 10.0;
+auto dist_to_focus = (lookat - lookfrom).length();
 auto aperture = 0.1;
 
 camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
-const int samples_per_pixel = 200;
+const int samples_per_pixel = 20;
 const int max_depth = 50;
 
 hittable_list world;
@@ -68,6 +68,10 @@ void renderCallback(Pix *pix)
     double currentTime = Pix::GetTime();
     double delta = currentTime - lastTime;
     lastTime = currentTime;
+
+    //rotate camera around the lookat point
+    lookfrom = point3(10 * cos(frame_count * 0.1), 2, 10 * sin(frame_count * 0.1));
+    cam = camera(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
     for (int t = 0; t < num_threads; t++)
     {
@@ -164,13 +168,13 @@ hittable_list random_scene()
     }
 
     auto material1 = make_shared<dielectric>(1.5);
-    world.add(make_shared<cube>(point3(0, 1, 0), 2, vec3(0, 1, 0), vec3(1, 0, 0), vec3(0, 0, 1), material1));
+    world.add(make_shared<cube>(point3(0, 1, 0), 2, vec3(0, 1, 0), vec3(1, 0, 0), material1));
 
     auto material2 = make_shared<lambertian>(color(0.4, 0.2, 0.1));
-    world.add(make_shared<cube>(point3(-4, 1, 0), 3, vec3(0, 1, 0), vec3(1, 0, 0), vec3(0, 0, 1), material2));
+    world.add(make_shared<cube>(point3(-4, 1, 0), 3, vec3(0, 1, 0), vec3(1, 0, 0), material2));
 
     auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.1);
-    world.add(make_shared<cube>(point3(4, 1, 0), 1, vec3(0, 1, 0), vec3(1, 0, 0), vec3(0, 0, 1), material3));
+    world.add(make_shared<cube>(point3(4, 1, 0), 1, vec3(0, 1, 1), vec3(1, 0, 0), material3));
 
     return world;
 }
@@ -190,7 +194,6 @@ int main(int argc, char const *argv[])
 
     world = random_scene();
 
-    //Unicode yellow escape sequence
     auto yellow = "\u001b[33m";
     auto reset = "\u001b[0m";
     std::cout << yellow << "Using " << num_threads << " threads" << reset << std::endl;

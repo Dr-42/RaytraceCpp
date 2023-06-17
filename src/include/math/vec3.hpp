@@ -25,6 +25,7 @@ public:
     double length() const;
     double length_squared() const;
     bool near_zero() const;
+    void rotate(double angle, vec3 axis);
 };
 
 using point3 = vec3;

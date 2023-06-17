@@ -1,12 +1,12 @@
 #include "utils/cube.hpp"
 
 
-cube::cube(point3 cen, double side_len, vec3 up, vec3 front, vec3 right, std::shared_ptr<material> m){
+cube::cube(point3 cen, double side_len, vec3 up, vec3 front, std::shared_ptr<material> m){
     center = cen;
     this->side_len = side_len;
     this->up = up;
     this->front = front;
-    this->right = right;
+    this->right = cross(up, front);
     mat_ptr = m;
 
     triangle triangles[12];

@@ -55,6 +55,26 @@ bool vec3::near_zero() const
     return (fabs(e[0]) < s) && (fabs(e[1]) < s) && (fabs(e[2]) < s);
 }
 
+void vec3::rotate(double angle, vec3 axis){
+    double c = cos(angle);
+    double s = sin(angle);
+    double t = 1 - c;
+    double x = e[0];
+    double y = e[1];
+    double z = e[2];
+    double x2 = axis[0];
+    double y2 = axis[1];
+    double z2 = axis[2];
+    vec3 ne = vec3(
+        (t * x2 * x2 + c) * x + (t * x2 * y2 - s * z2) * y + (t * x2 * z2 + s * y2) * z,
+        (t * x2 * y2 + s * z2) * x + (t * y2 * y2 + c) * y + (t * y2 * z2 - s * x2) * z,
+        (t * x2 * z2 - s * y2) * x + (t * y2 * z2 + s * x2) * y + (t * z2 * z2 + c) * z
+    );
+    e[0] = ne[0];
+    e[1] = ne[1];
+    e[2] = ne[2];
+}
+
 std::ostream &operator<<(std::ostream &out, const vec3 &v)
 {
     return out << v.e[0] << ' ' << v.e[1] << ' ' << v.e[2];
